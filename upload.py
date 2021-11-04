@@ -9,9 +9,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 import yaml
 
-os.environ['AB_LOGIN'] = '' # AB admin login
-os.environ['AB_PASSWORD'] = '' # AB admin password
-
 class ABUploader:
 
     STATUS_XPATH = "//app-upload-list-page//a[text()='%s']/../following-sibling::div[2]"
