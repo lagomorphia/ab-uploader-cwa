@@ -1,0 +1,258 @@
+service: ab-uploader
+app: ab-uploader
+org: aflcio
+
+provider:
+  name: aws
+  runtime: python3.7
+  environment:
+    S3_UPLOAD_BUCKET: ${self:service}-${opt:stage, self:provider.stage}-uploads
+    AB_LOGIN: ${param:ab_login}
+    AB_PASSWORD: ${param:ab_pass}
+  s3:
+    uploadBucket:
+      name: ${self:provider.environment.S3_UPLOAD_BUCKET}
+      publicAccessBlockConfiguration:
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+        BlockPublicPolicy: true
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:GetObject"
+      Resource:
+        - 'arn:aws:s3:::${self:provider.environment.S3_UPLOAD_BUCKET}/*'
+
+plugins:
+  - serverless-python-requirements
+  - serverless-step-functions
+  - serverless-iam-roles-per-function
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+    slim: true
+    layer: true
+
+layers:
+  chrome:
+    path: chromelayer
+
+package:
+  individually: false
+  include:
+    - '!./**'
+    - 'upload.py'
+    - 'handler.py'
+    - 'bin/**'
+    - 'lib/**'
+  exclude:
+    - '**'
+
+functions:
+  s3_trigger:
+    handler: handler.s3_handler
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    timeout: 60
+    environment:
+      stateMachineArn: ${self:resources.Outputs.UploadMachine.Value}
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "s3:GetObject"
+          - "s3:PutObject"
+        Resource:
+          - 'arn:aws:s3:::${self:provider.environment.S3_UPLOAD_BUCKET}/*'
+      - Effect: "Allow"
+        Action:
+          - "states:StartExecution"
+        Resource:
+          - ${self:resources.Outputs.UploadMachine.Value}
+    events:
+      - s3:
+          bucket: ${self:provider.environment.S3_UPLOAD_BUCKET}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .csv
+      - s3:
+          bucket: ${self:provider.environment.S3_UPLOAD_BUCKET}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .txt
+  one_ata_time:
+    handler: handler.one_ata_time
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    environment:
+      # Can't use !Ref because of circular dependency
+      stateMachineArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:abUploadMachine-${opt:stage}"
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "states:ListExecutions"
+        Resource:
+          - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:abUploadMachine-${opt:stage}"
+  start_upload:
+    handler: handler.start_upload
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+      - { Ref: ChromeLambdaLayer }
+    timeout: 500
+  check_status:
+    handler: handler.check_upload_status
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+      - { Ref: ChromeLambdaLayer }
+    timeout: 80
+  notify:
+    handler: handler.notify
+    environment:
+      notifyTopic: !Ref NotifyTopic
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "sns:Publish"
+        Resource:
+          - !Ref NotifyTopic
+      - Effect: "Allow"
+        Action:
+          - "states:GetExecutionHistory"
+        Resource:
+          - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:execution:abUploadMachine-${opt:stage}:*"
+
+stepFunctions:
+  stateMachines:
+    uploadFunc:
+      id: AbUploadMachine
+      name: abUploadMachine-${opt:stage}
+      loggingConfig:
+        level: ERROR
+        includeExecutionData: true
+        destinations:
+          - Fn::GetAtt: [AbUploadMachineLogGroup, Arn]
+      tracingConfig:
+        enabled: true
+      notifications:
+        FAILED:
+          - lambda: !GetAtt NotifyLambdaFunction.Arn
+        SUCCEEDED:
+          - lambda: !GetAtt NotifyLambdaFunction.Arn
+      definition:
+        Comment: "Handles Action Builder uploads"
+        StartAt: OneAtATime
+        States:
+          OneAtATime:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [one_ata_time, Arn]
+            Next: ProceedChoice
+          ProceedChoice:
+            Type: Choice
+            Choices:
+              - Variable: $.proceed # check if this execution should proceed
+                BooleanEquals: True
+                Next: NotifyStart
+            Default: WaitToProceed
+          WaitToProceed:
+            Type: Wait
+            Seconds: 60
+            Next: OneAtATime
+          NotifyStart:
+            Type: Task
+            Resource: !GetAtt notify.Arn
+            Next: StartUpload
+          StartUpload:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [start_upload, Arn]
+            Next: WaitForUpload
+            Retry:
+              - ErrorEquals:
+                - TimeoutException
+                - Lambda.Unknown
+                IntervalSeconds: 20
+                MaxAttempts: 3
+                BackoffRate: 1.5
+          WaitForUpload:
+            Type: Wait
+            SecondsPath: "$.wait_time"
+            Next: CheckUploadStatus
+          CheckUploadStatus:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [check_status, Arn]
+            Next: UploadStatusChoice
+            Retry:
+              - ErrorEquals:
+                - TimeoutException
+                - Lambda.Unknown
+                IntervalSeconds: 5
+                MaxAttempts: 3
+                BackoffRate: 2
+          UploadStatusChoice:
+            Type: Choice
+            Choices:
+            - Variable: $.upload_status
+              StringMatches: Needs*
+              Next: WaitForUpload
+            - And:
+                - Variable: $.upload_status
+                  StringMatches: Complete*
+                - Variable: $.uploads_todo
+                  IsPresent: true
+              Next: StartUpload
+            - Variable: "$.upload_status"
+              StringMatches: Complete*
+              Next: AllSet
+            - Variable: "$.retries_left"
+              NumericGreaterThan: 0
+              Next: WaitForUpload
+            Default: GiveUp
+          GiveUp:
+            Type: Fail
+            Cause: "Upload never finished"
+          AllSet:
+            Type: Succeed
+
+
+resources:
+  Outputs:
+    UploadMachine:
+      Description: The ARN of the uploader state machine
+      Value:
+        Ref: AbUploadMachine
+  Resources:
+    S3UploadBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: ${self:provider.environment.S3_UPLOAD_BUCKET}
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "s3:DeleteObject"
+                - "s3:GetObject"
+                - "s3:ListBucket"
+                - "s3:PutObject"
+                - "s3:PutObjectAcl"
+              Resource:
+                - 'arn:aws:s3:::${self:provider.environment.S3_UPLOAD_BUCKET}'
+                - 'arn:aws:s3:::${self:provider.environment.S3_UPLOAD_BUCKET}/*'
+              Principal:
+                AWS: ${param:s3_user}
+    AbUploadMachineLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/states/abUploadMachine-${opt:stage}
+    NotifyTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ABUploadTopic-${opt:stage}
+        Subscription:
+          - Protocol: email
+            Endpoint: jmann@aflcio.org

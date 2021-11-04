@@ -1,0 +1,15 @@
+instance: cwatest
+
+default_field_map: &default_field_map
+  id:
+    column: id
+    ab_type: Custom ID 1
+  people: &default_people_map
+      first_name: First Name
+      middle_name: Middle Name
+      last_name: Last Name
+
+upload-test:
+  campaign_name: ATTM IHX
+  fields:
+    <<: *default_field_map
