@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 import yaml
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 class ABUploader:
 
@@ -15,7 +16,7 @@ class ABUploader:
 
     def __init__(self, config, upload_file=None, chrome_options=None, no_login=False):
         # add path to Chrome driver below
-        self.driver = webdriver.Chrome("chromedriver.exe", chrome_options=chrome_options)
+        self.driver = webdriver.Remote("http://127.0.0.1:4444/wd/hub", DesiredCapabilities.CHROME, chrome_options=chrome_options)
 
         self.UPLOAD_FILE = upload_file
         self.CAMPAIGN_NAME = config['campaign_name']
