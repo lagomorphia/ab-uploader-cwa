@@ -11,9 +11,6 @@ import yaml
 import chromedriver_binary
 from webdriver_manager.chrome import ChromeDriverManager
 
-AB_LOGIN = os.environ['AB_LOGIN']
-AB_PASSWORD = os.environ['AB_PASSWORD']
-
 class ABUploader:
 
     STATUS_XPATH = "//app-upload-list-page//a[text()='%s']/../following-sibling::div[2]"
