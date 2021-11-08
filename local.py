@@ -3,7 +3,7 @@ from upload import ABUploader
 load_dotenv()
 # Change these variables.
 
-import request
+import requests
 import csv
 # Define the remote URL
 url = "https://raw.githubusercontent.com/lodgepolepines/ab-uploader-cwa/main/ab_uploader_test.csv"
