@@ -21,7 +21,7 @@ class ABUploader:
 
     def __init__(self, config, upload_file=None, chrome_options=None, no_login=False):
         # add path to Chrome driver below
-        self.driver = webdriver.Chrome(chrome_options=chrome_options))
+        self.driver = webdriver.Chrome(chrome_options=chrome_options)
 
         self.UPLOAD_FILE = upload_file
         self.CAMPAIGN_NAME = config['campaign_name']
