@@ -1,5 +1,9 @@
 from dotenv import load_dotenv
 from upload import ABUploader
+import os
+
+AB_LOGIN = os.environ['AB_LOGIN']
+AB_PASSWORD = os.environ['AB_PASSWORD']
 
 load_dotenv()
 # Change these variables.
