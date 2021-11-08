@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from upload import ABUploader
-load_dotenv()\
+load_dotenv()
 # Change these variables.
 
 import requests
