@@ -10,18 +10,18 @@ from selenium.webdriver.support.ui import WebDriverWait
 import yaml
 import chromedriver_binary
 
-chrome_options = webdriver.ChromeOptions()
-chrome_options.add_argument('--no-sandbox')
-chrome_options.add_argument('--window-size=1420,1080')
-chrome_options.add_argument('--headless')
-chrome_options.add_argument('--disable-gpu')
-
 class ABUploader:
 
     STATUS_XPATH = "//app-upload-list-page//a[text()='%s']/../following-sibling::div[2]"
 
     def __init__(self, config, upload_file=None, chrome_options=None, no_login=False):
         # add path to Chrome driver below
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--window-size=1420,1080')
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--disable-gpu')
+        
         self.driver = webdriver.Chrome(chrome_options=chrome_options)
 
         self.UPLOAD_FILE = upload_file
