@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 import yaml
 import chromedriver_binary
+from webdriver_manager.chrome import ChromeDriverManager
 
 class ABUploader:
 
@@ -22,7 +23,7 @@ class ABUploader:
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--disable-gpu')
         
-        self.driver = webdriver.Chrome(chrome_options=chrome_options)
+        self.driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=chrome_options)
 
         self.UPLOAD_FILE = upload_file
         self.CAMPAIGN_NAME = config['campaign_name']
