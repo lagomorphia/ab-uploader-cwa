@@ -11,6 +11,9 @@ import yaml
 import chromedriver_binary
 from webdriver_manager.chrome import ChromeDriverManager
 
+AB_LOGIN = os.environ['AB_LOGIN']
+AB_PASSWORD = os.environ['AB_PASSWORD']
+
 class ABUploader:
 
     STATUS_XPATH = "//app-upload-list-page//a[text()='%s']/../following-sibling::div[2]"
@@ -65,8 +68,8 @@ class ABUploader:
         if el.tag_name == 'app-home':
             print("Already logged in")
             return
-        driver.find_element_by_id('email').send_keys(os.getenv('AB_LOGIN'))
-        driver.find_element_by_id('password').send_keys(os.getenv('AB_PASSWORD'))
+        driver.find_element_by_id('email').send_keys(AB_LOGIN)
+        driver.find_element_by_id('password').send_keys(AB_PASSWORD)
         driver.find_element_by_id('loginButton').click()
         WebDriverWait(driver, 20).until_not(EC.title_contains("Login"))
         print("Logged in succesfully")
