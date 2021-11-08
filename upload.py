@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 import yaml
+import chromedriver_binary
 
 chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument('--no-sandbox')
