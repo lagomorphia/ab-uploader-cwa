@@ -8,7 +8,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 import yaml
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--window-size=1420,1080')
+chrome_options.add_argument('--headless')
+chrome_options.add_argument('--disable-gpu')
 
 class ABUploader:
 
@@ -16,7 +21,7 @@ class ABUploader:
 
     def __init__(self, config, upload_file=None, chrome_options=None, no_login=False):
         # add path to Chrome driver below
-        self.driver = webdriver.Remote("http://127.0.0.1:4444/wd/hub", DesiredCapabilities.CHROME)
+        self.driver = webdriver.Chrome(chrome_options=chrome_options))
 
         self.UPLOAD_FILE = upload_file
         self.CAMPAIGN_NAME = config['campaign_name']
