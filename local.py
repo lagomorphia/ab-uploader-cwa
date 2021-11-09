@@ -1,6 +1,15 @@
 from dotenv import load_dotenv
 from upload import ABUploader
+import pandas as pd
 load_dotenv()
+
+import pandas as pd 
+# intialise data
+data = {'id':['hb520m'], 'first_name':['Heather'],
+'middle_name':['SELENIUM'], 'last_name':['Burroughs']} 
+# Create DataFrame 
+df = pd.DataFrame(data) 
+df.to_csv('/app/ab_uploader_test.csv', index=False)
 
 # Change these variables.
 upload_file = '/app/ab_uploader_test.csv'
