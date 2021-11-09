@@ -3,7 +3,7 @@ from upload import ABUploader
 load_dotenv()
 
 # Change these variables.
-upload_file = 'ab_uploader_test.csv'
+upload_file = '/app/ab_uploader_test.csv'
 config_file = 'config.example.yml'
 campaign_key = 'upload-test'
 config = ABUploader.parse_config(config_file, campaign_key)
