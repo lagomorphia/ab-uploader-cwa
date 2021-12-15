@@ -5,7 +5,7 @@ load_dotenv()
 
 import pandas as pd 
 # intialise data
-data = {'id':['hb520m'], 'first_name':['Heather'],
+data = {'first_name':['Heather'],
 'middle_name':['SELENIUM'], 'last_name':['Burroughs']} 
 # Create DataFrame 
 df = pd.DataFrame(data) 
