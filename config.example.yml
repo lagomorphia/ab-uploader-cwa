@@ -1,4 +1,4 @@
-instance: cwatest
+instance: cwa
 
 default_field_map: &default_field_map
   id:
