@@ -2,8 +2,8 @@ instance: cwatest
 
 default_field_map: &default_field_map
   id:
-    column: id
-    ab_type: Custom ID
+    column:
+    ab_type:
   people: &default_people_map
       first_name: First Name
       middle_name: Middle Name
